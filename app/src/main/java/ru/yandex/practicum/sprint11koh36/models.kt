@@ -1,8 +1,13 @@
 package ru.yandex.practicum.sprint11koh36
 
+import com.google.gson.JsonDeserializationContext
+import com.google.gson.JsonDeserializer
+import com.google.gson.JsonElement
 import com.google.gson.TypeAdapter
+import com.google.gson.annotations.SerializedName
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
+import java.lang.reflect.Type
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -17,12 +22,55 @@ data class Data(
     val items: List<NewsItem>
 )
 
-data class NewsItem(
-    val id: String,
-    val title: String,
-    val type: String,
-    val created: Date,
-)
+//data class NewsItem(
+//    val id: String,
+//    val title: String,
+//    val type: String,
+//    val created: Date,
+//)
+
+sealed class NewsItem {
+    abstract val id: String
+    abstract val title: String
+    abstract val type: String
+    abstract val created: Date
+
+
+    data class Sport(
+        override val id: String,
+        override val title: String,
+        override val type: String,
+        override val created: Date,
+        val specificPropertyForSport: String
+    ): NewsItem()
+
+    data class Science(
+        override val id: String,
+        override val title: String,
+        override val type: String,
+        override val created: Date,
+        @SerializedName("specific_property_for_science")
+        val specificPropertyForScience: String
+    ): NewsItem()
+
+    data class Social(
+        override val id: String,
+        override val title: String,
+        override val type: String,
+        override val created: Date,
+        val content: String
+    ): NewsItem()
+
+    data class Unknown(
+        override val id: String,
+        override val title: String,
+        override val type: String,
+        override val created: Date,
+        ): NewsItem()
+
+
+
+}
 
 
 class CustomDateTypeAdapter : TypeAdapter<Date>() {
@@ -42,3 +90,30 @@ class CustomDateTypeAdapter : TypeAdapter<Date>() {
     }
 
 }
+
+
+class NewsItemAdapter : JsonDeserializer<NewsItem> {
+    override fun deserialize(
+        json: JsonElement,
+        typeOfT: Type,
+        context: JsonDeserializationContext
+    ): NewsItem {
+        val typeStr = json.asJsonObject.getAsJsonPrimitive("type").asString
+        return when (typeStr) {
+            "sport" -> context.deserialize(json, NewsItem.Sport::class.java)
+            "science" -> context.deserialize(json, NewsItem.Science::class.java)
+//            "social" -> context.deserialize(json, NewsItem.Social::class.java)
+            else -> context.deserialize(json, NewsItem.Unknown::class.java)
+        }
+    }
+
+}
+
+
+
+
+
+
+
+
+
